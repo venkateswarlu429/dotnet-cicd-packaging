@@ -1,0 +1,25 @@
+## Build output
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+artifacts/
+
+## Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+## Test results
+TestResults/
+*.trx
+*.coverage
+
+## Packages
+*.nupkg
+*.snupkg
+
+## OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,81 @@
+# Azure DevOps pipeline: build, test, pack, publish.
+# Mirrors .github/workflows/ci.yml against an Azure Artifacts feed.
+# Publish runs ONLY on version tags (refs/tags/vX.Y.Z).
+# Pull requests build and test but never publish.
+#
+# BEFORE RUNNING: replace the <YOUR-ORG>, <YOUR-PROJECT>, and <YOUR-FEED>
+# placeholders in the publish step with your own Azure DevOps values, and
+# grant the pipeline's build service account permission to push to the feed.
+# No real organisation, feed URL, or credential is stored in this repo.
+
+trigger:
+  branches:
+    include:
+      - main
+  tags:
+    include:
+      - 'v*'
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+  dotnetVersion: 8.x
+
+steps:
+  - task: UseDotNet@2
+    displayName: Use .NET $(dotnetVersion) SDK
+    inputs:
+      version: $(dotnetVersion)
+
+  - script: |
+      if [[ "$BUILD_SOURCEBRANCH" == refs/tags/v* ]]; then
+        VERSION="${BUILD_SOURCEBRANCH#refs/tags/v}"
+      else
+        VERSION="0.1.0-ci.$BUILD_BUILDID"
+      fi
+      echo "##vso[task.setvariable variable=packageVersion]$VERSION"
+      echo "Package version: $VERSION"
+    displayName: Resolve package version
+
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: restore
+
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      command: build
+      arguments: '--no-restore -c $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: Test
+    inputs:
+      command: test
+      arguments: '--no-build -c $(buildConfiguration)'
+
+  - task: DotNetCoreCLI@2
+    displayName: Pack
+    inputs:
+      command: pack
+      packagesToPack: src/SampleService/SampleService.csproj
+      configuration: $(buildConfiguration)
+      versioningScheme: off
+      buildProperties: 'PackageVersion=$(packageVersion)'
+
+  # Tag builds only: Build.SourceBranch is refs/tags/vX.Y.Z for tag runs
+  # and refs/heads/... or refs/pull/... otherwise, so PRs never publish.
+  - script: >
+      dotnet nuget push $(Build.ArtifactStagingDirectory)/*.nupkg
+      --source https://pkgs.dev.azure.com/<YOUR-ORG>/<YOUR-PROJECT>/_packaging/<YOUR-FEED>/nuget/v3/index.json
+      --api-key $(System.AccessToken)
+      --skip-duplicate
+    displayName: Publish to Azure Artifacts
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/v')

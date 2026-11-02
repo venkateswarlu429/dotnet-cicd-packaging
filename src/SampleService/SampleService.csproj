@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Packable so `dotnet pack` produces a NuGet package for this service. -->
+    <IsPackable>true</IsPackable>
+    <PackageId>SampleService</PackageId>
+    <Description>Minimal sample service used to demonstrate .NET build, test, pack, and publish pipelines.</Description>
+    <Authors>Venkateswarlu Maddula</Authors>
+  </PropertyGroup>
+
+</Project>
